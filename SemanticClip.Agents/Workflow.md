@@ -249,65 +249,6 @@ stateDiagram-v2
     end note
 ```
 
-```
-
-### Data Types at Each Edge
-
-| Edge | Source Executor | Target Executor | Data Type | Description |
-|------|----------------|----------------|-----------|-------------|
-| 1 | FileInput | AudioExtraction | `string` | Absolute path to MP4 file |
-| 2 | AudioExtraction | Transcription | `string` | Path to extracted WAV file |
-| 3 | Transcription | BlogGeneration | `string` | Full transcript text |
-| 4 | BlogGeneration | BlogEvaluation | `string` | Initial blog post markdown |
-| 5 | BlogEvaluation | BlogPublishing | `string` | Improved blog post markdown |
-| 6 | BlogPublishing | Result | `BlogPublishingResponse` | URL + status |
-
-## 🆚 Comparison: Process vs Workflow Orchestration
-
-### Architecture Comparison Diagram
-
-```mermaid
-graph TB
-    subgraph "Event-Driven Process (Semantic Kernel)"
-        P1[Process Builder]
-        P1 --> S1[Step 1]
-        P1 --> S2[Step 2]
-        P1 --> S3[Step 3]
-        
-        S1 -->|EmitEvent| ER[Event Router]
-        ER -->|OnFunctionResult| S2
-        S2 -->|EmitEvent| ER
-        ER -->|OnFunctionResult| S3
-        
-        State1[Process State]
-        State1 -.manages.-> S1
-        State1 -.manages.-> S2
-        State1 -.manages.-> S3
-    end
-    
-    subgraph "Sequential Workflow (Agent Framework)"
-        W1[Workflow Orchestrator]
-        E1[Executor 1]
-        E2[Executor 2]
-        E3[Executor 3]
-        
-        W1 -->|await call| E1
-        E1 -->|return value| W1
-        W1 -->|await call| E2
-        E2 -->|return value| W1
-        W1 -->|await call| E3
-        E3 -->|return value| W1
-    end
-    
-    style P1 fill:#FFB6C1
-    style ER fill:#FFB6C1
-    style State1 fill:#FFB6C1
-    style W1 fill:#98FB98
-    style E1 fill:#87CEEB
-    style E2 fill:#87CEEB
-    style E3 fill:#87CEEB
-```
-
 ### Event-Driven Process (Semantic Kernel)
 
 **Structure:**
@@ -450,64 +391,6 @@ sequenceDiagram
     Note over Executor: Garbage collected when workflow completes
 ```
 
-### Workflow Lifecycle
-
-```
-Constructor
-    ↓
-Register in DI (Program.cs)
-    ↓
-Injected into Workflow
-    ↓
-IsConfigured() check
-    ↓
-Execute method called
-    ↓
-Return result
-    ↓
-Dispose (if IDisposable)
-### Workflow Lifecycle Diagram
-
-```mermaid
-flowchart TD
-    Start([Application Start]) --> CreateHost[Create Host with DI]
-    CreateHost --> RegisterExecutors[Register Executors in DI]
-    RegisterExecutors --> RegisterWorkflow[Register Workflow]
-    RegisterWorkflow --> BuildHost[Build Host]
-    BuildHost --> ResolveWorkflow[Resolve VideoProcessingWorkflow]
-    ResolveWorkflow --> CallRun[Call RunAsync]
-    
-    CallRun --> Step1{Step 1: File Input}
-    Step1 -->|success| Step2{Step 2: Audio Extraction}
-    Step1 -->|error| Cleanup
-    
-    Step2 -->|success| Step3{Step 3: Transcription}
-    Step2 -->|error| Cleanup
-    
-    Step3 -->|success| Step4{Step 4: Blog Generation}
-    Step3 -->|skip if not configured| Step4
-    Step3 -->|error| Cleanup
-    
-    Step4 -->|success| Step5{Step 5: Evaluation}
-    Step4 -->|skip if not configured| Step5
-    Step4 -->|error| Cleanup
-    
-    Step5 -->|success| Step6{Step 6: Publishing}
-    Step5 -->|skip if not configured| Step6
-    Step5 -->|error| Cleanup
-    
-    Step6 -->|success| Cleanup
-    Step6 -->|error| Cleanup
-    
-    Cleanup[Cleanup Resources in Finally Block]
-    Cleanup --> BuildResult[Build VideoProcessingResult]
-    BuildResult --> ReturnResult[Return to Program.cs]
-    ReturnResult --> End([Exit])
-    
-    style Start fill:#90EE90
-    style End fill:#FFB6C1
-    style Cleanup fill:#FFE4B5
-```
 
 ### Error Handling Flow
 
@@ -539,67 +422,6 @@ flowchart TD
     style LogError fill:#FFB6C1
     style ThrowException fill:#FF6B6B
     style FinallyBlock fill:#FFE4B5
-```
-
-```
-
-## 📋 Best Practices
-
-### For Executors
-
-1. **Single Responsibility**: One executor = one task
-2. **Configuration Validation**: Always implement `IsConfigured()`
-3. **Error Messages**: Provide clear, actionable error messages
-4. **Logging**: Log at appropriate levels (Debug, Info, Warning, Error)
-5. **Resource Cleanup**: Dispose of resources properly
-6. **Async All the Way**: Use async/await consistently
-7. **Avoid Side Effects**: Don't modify external state
-
-### For Workflows
-
-1. **Linear When Possible**: Keep workflows sequential for simplicity
-2. **Validate Early**: Check executor configuration before execution
-3. **Handle Errors Gracefully**: Don't let one failure crash the workflow
-4. **Track State**: Capture results from each step
-5. **Clean Up**: Use try-finally for resource cleanup
-6. **Progress Reporting**: Inform users of current step
-7. **Result Completeness**: Return all relevant data in result object
-
-## 🚀 Extending the Workflow
-
-### Adding a New Executor - Process Diagram
-
-```mermaid
-flowchart LR
-    subgraph Step1["1. Create Executor"]
-        A1[Create NewExecutor.cs in /Executors] --> A2[Implement constructor with DI]
-        A2 --> A3[Add IsConfigured method]
-        A3 --> A4[Implement ProcessAsync method]
-    end
-    
-    subgraph Step2["2. Register in DI"]
-        B1[Open Program.cs] --> B2[Add AddTransient for NewExecutor]
-    end
-    
-    subgraph Step3["3. Inject into Workflow"]
-        C1[Add field to VideoProcessingWorkflow] --> C2[Add parameter to constructor]
-        C2 --> C3[Assign to field]
-    end
-    
-    subgraph Step4["4. Call in Sequence"]
-        D1[Add execution in RunAsync] --> D2[Check IsConfigured]
-        D2 --> D3[Call ProcessAsync]
-        D3 --> D4[Handle result]
-    end
-    
-    Step1 --> Step2
-    Step2 --> Step3
-    Step3 --> Step4
-    
-    style Step1 fill:#E1F5FF
-    style Step2 fill:#FFE1F5
-    style Step3 fill:#F5FFE1
-    style Step4 fill:#FFF5E1
 ```
 
 ### Workflow Modification Patterns
