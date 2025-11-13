@@ -391,39 +391,6 @@ sequenceDiagram
     Note over Executor: Garbage collected when workflow completes
 ```
 
-
-### Error Handling Flow
-
-```mermaid
-flowchart TD
-    Execute[Execute Executor Method] --> TryBlock{Try Block}
-    
-    TryBlock -->|Success| LogInfo[Log Information]
-    LogInfo --> ReturnResult[Return Result]
-    
-    TryBlock -->|Exception| CatchBlock[Catch Exception]
-    CatchBlock --> LogError[Log Error]
-    LogError --> CheckCritical{Critical Failure?}
-    
-    CheckCritical -->|Yes| ThrowException[Throw Exception]
-    ThrowException --> WorkflowCatch[Workflow Catches]
-    WorkflowCatch --> DisplayError[Display Error to User]
-    DisplayError --> FinallyBlock
-    
-    CheckCritical -->|No| UseFallback[Use Fallback/Default]
-    UseFallback --> ReturnFallback[Return Fallback Result]
-    
-    ReturnResult --> FinallyBlock[Finally: Cleanup Resources]
-    ReturnFallback --> FinallyBlock
-    
-    FinallyBlock --> Done([Done])
-    
-    style Execute fill:#87CEEB
-    style LogError fill:#FFB6C1
-    style ThrowException fill:#FF6B6B
-    style FinallyBlock fill:#FFE4B5
-```
-
 ### Workflow Modification Patterns
 
 ```mermaid
