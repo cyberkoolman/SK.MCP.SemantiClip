@@ -10,7 +10,7 @@ using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol.Transport;
 using OpenAI;
 using OpenAI.Chat;
-using SemanticClip.Core.Models;
+using SemanticClip.Agents.Models;
 
 namespace SemanticClip.Agents.Executors;
 

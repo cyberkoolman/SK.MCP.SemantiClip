@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using SemanticClip.Agents.Executors;
+using SemanticClip.Agents.Models;
 
 namespace SemanticClip.Agents.Workflows;
 
@@ -122,7 +123,7 @@ public class VideoProcessingWorkflow
             Console.WriteLine("\n📋 Step 6: Blog Publishing");
             Console.WriteLine("──────────────────────────────────────────────────────────────");
             
-            Core.Models.BlogPublishingResponse? publishResponse = null;
+            BlogPublishingResponse? publishResponse = null;
             var blogToPublish = evaluatedBlogPost ?? blogPost; // Use evaluated version if available
             
             if (string.IsNullOrWhiteSpace(blogToPublish))
@@ -212,7 +213,7 @@ public class VideoProcessingResult
     public string? Transcript { get; set; }
     public string? BlogPost { get; set; }
     public string? EvaluatedBlogPost { get; set; }
-    public SemanticClip.Core.Models.BlogPublishingResponse? PublishingResult { get; set; }
+    public BlogPublishingResponse? PublishingResult { get; set; }
     public string? Message { get; set; }
     public string? ErrorMessage { get; set; }
 }
