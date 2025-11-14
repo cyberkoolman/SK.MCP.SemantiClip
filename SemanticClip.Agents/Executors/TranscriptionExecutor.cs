@@ -1,9 +1,12 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure;
 using Azure.AI.OpenAI;
 using Azure.Identity;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OpenAI.Audio;
@@ -14,7 +17,7 @@ namespace SemanticClip.Agents.Executors;
 /// Executor that transcribes audio files using Azure OpenAI Whisper.
 /// Ported from the Semantic Kernel TranscribeVideoStep to use Microsoft Agent Framework.
 /// </summary>
-public class TranscriptionExecutor
+public class TranscriptionExecutor : ReflectingExecutor<TranscriptionExecutor>, IMessageHandler<string, string>
 {
     private readonly ILogger<TranscriptionExecutor> _logger;
     private readonly IConfiguration _configuration;
@@ -22,7 +25,7 @@ public class TranscriptionExecutor
 
     public TranscriptionExecutor(
         ILogger<TranscriptionExecutor> logger,
-        IConfiguration configuration)
+        IConfiguration configuration) : base("Transcription")
     {
         _logger = logger;
         _configuration = configuration;
@@ -51,7 +54,7 @@ public class TranscriptionExecutor
     /// </summary>
     /// <param name="audioPath">Path to the audio file (WAV format)</param>
     /// <returns>Transcribed text</returns>
-    public async Task<string> TranscribeAudioAsync(string audioPath)
+    public async ValueTask<string> HandleAsync(string audioPath, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         if (_openAIClient == null)
         {

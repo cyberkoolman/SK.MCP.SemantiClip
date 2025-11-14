@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure.Identity;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
@@ -18,7 +21,7 @@ namespace SemanticClip.Agents.Executors;
 /// Executor that publishes a blog post to GitHub using MCP (Model Context Protocol).
 /// Uses Microsoft Agent Framework with MCP client integration.
 /// </summary>
-public class BlogPublishingExecutor
+public class BlogPublishingExecutor : ReflectingExecutor<BlogPublishingExecutor>, IMessageHandler<string, BlogPublishingResponse>
 {
     private readonly ILogger<BlogPublishingExecutor> _logger;
     private readonly IConfiguration _configuration;
@@ -26,7 +29,7 @@ public class BlogPublishingExecutor
 
     public BlogPublishingExecutor(
         ILogger<BlogPublishingExecutor> logger,
-        IConfiguration configuration)
+        IConfiguration configuration) : base("BlogPublishing")
     {
         _logger = logger;
         _configuration = configuration;
@@ -72,9 +75,8 @@ public class BlogPublishingExecutor
     /// Publishes a blog post to GitHub using MCP client.
     /// </summary>
     /// <param name="blogPost">The blog post content to publish</param>
-    /// <param name="videoPath">Original video file path (used for filename generation)</param>
     /// <returns>Publishing result details</returns>
-    public async Task<BlogPublishingResponse> PublishBlogPostAsync(string blogPost, string videoPath)
+    public async ValueTask<BlogPublishingResponse> HandleAsync(string blogPost, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         if (_openAIClient == null)
         {
@@ -106,11 +108,10 @@ public class BlogPublishingExecutor
             _logger.LogInformation("Retrieved {ToolCount} MCP tools from GitHub server", mcpTools.Count);
             Console.WriteLine($"🔧 Retrieved {mcpTools.Count} MCP tools from GitHub server");
 
-            // Generate filename from video path
-            var videoFileName = Path.GetFileNameWithoutExtension(videoPath);
+            // Generate filename with timestamp
             var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-            var filename = $"blog-posts/{videoFileName}-{timestamp}.md";
-            var commitMessage = $"Add blog post: {videoFileName}";
+            var filename = $"blog-posts/generated-post-{timestamp}.md";
+            var commitMessage = $"Add blog post: {timestamp}";
 
             Console.WriteLine($"📝 Target file: {filename}");
             Console.WriteLine($"📦 Repository: {githubRepo}");

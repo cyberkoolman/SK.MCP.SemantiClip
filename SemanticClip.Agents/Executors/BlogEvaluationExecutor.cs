@@ -1,7 +1,10 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure.Identity;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OpenAI;
@@ -14,7 +17,7 @@ namespace SemanticClip.Agents.Executors;
 /// Uses OpenAI client with Microsoft Agent Framework to enhance content quality,
 /// relevance, engagement, and SEO.
 /// </summary>
-public class BlogEvaluationExecutor
+public class BlogEvaluationExecutor : ReflectingExecutor<BlogEvaluationExecutor>, IMessageHandler<string, string>
 {
     private readonly ILogger<BlogEvaluationExecutor> _logger;
     private readonly IConfiguration _configuration;
@@ -22,7 +25,7 @@ public class BlogEvaluationExecutor
 
     public BlogEvaluationExecutor(
         ILogger<BlogEvaluationExecutor> logger,
-        IConfiguration configuration)
+        IConfiguration configuration) : base("BlogEvaluation")
     {
         _logger = logger;
         _configuration = configuration;
@@ -68,9 +71,8 @@ public class BlogEvaluationExecutor
     /// Evaluates and improves a blog post using AI.
     /// </summary>
     /// <param name="blogPost">The original blog post to improve</param>
-    /// <param name="videoFilePath">Original video file path (for saving evaluated version)</param>
     /// <returns>Improved blog post content</returns>
-    public async Task<string> EvaluateBlogPostAsync(string blogPost, string videoFilePath)
+    public async ValueTask<string> HandleAsync(string blogPost, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         if (_openAIClient == null)
         {
@@ -137,15 +139,6 @@ public class BlogEvaluationExecutor
             }
 
             Console.WriteLine($"✅ Blog post evaluated and improved: {improvedBlogPost.Length} characters");
-
-            // Save the evaluated version to a file
-            var videoFileName = Path.GetFileNameWithoutExtension(videoFilePath);
-            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-            var outputPath = Path.Combine(Path.GetTempPath(), $"{videoFileName}-Evaluated-{timestamp}.md");
-
-            await File.WriteAllTextAsync(outputPath, improvedBlogPost);
-            Console.WriteLine($"\n💾 Evaluated blog post saved to:");
-            Console.WriteLine($"   {outputPath}");
 
             return improvedBlogPost;
         }

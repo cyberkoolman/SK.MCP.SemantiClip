@@ -1,6 +1,9 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.Extensions.Logging;
 
 namespace SemanticClip.Agents.Executors;
@@ -9,11 +12,11 @@ namespace SemanticClip.Agents.Executors;
 /// Executor that handles user input for video file path and validates the file exists.
 /// This is the entry point of the video processing workflow.
 /// </summary>
-public class FileInputExecutor
+public class FileInputExecutor : ReflectingExecutor<FileInputExecutor>, IMessageHandler<string, string>
 {
     private readonly ILogger<FileInputExecutor> _logger;
 
-    public FileInputExecutor(ILogger<FileInputExecutor> logger)
+    public FileInputExecutor(ILogger<FileInputExecutor> logger) : base("FileInput")
     {
         _logger = logger;
     }
@@ -22,7 +25,7 @@ public class FileInputExecutor
     /// Prompts the user for a video file path and validates it exists.
     /// Returns the validated file path for the next executor in the workflow.
     /// </summary>
-    public async Task<string> GetVideoFilePathAsync()
+    public ValueTask<string> HandleAsync(string input, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         while (true)
         {
@@ -62,7 +65,7 @@ public class FileInputExecutor
             _logger.LogDebug("Valid video file selected: {FilePath}", filePath);
             Console.WriteLine($"✅ File validated: {Path.GetFileName(filePath)} ({GetFileSize(filePath)})");
 
-            return await Task.FromResult(filePath);
+            return ValueTask.FromResult(filePath);
         }
     }
 

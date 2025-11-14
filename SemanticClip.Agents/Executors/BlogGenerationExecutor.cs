@@ -1,9 +1,12 @@
 using System;
 using System.ClientModel.Primitives;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure.Identity;
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OpenAI;
@@ -14,7 +17,7 @@ namespace SemanticClip.Agents.Executors;
 /// Executor that generates a blog post from a transcript using Azure AI Foundry.
 /// Uses OpenAI client with Microsoft Agent Framework.
 /// </summary>
-public class BlogGenerationExecutor
+public class BlogGenerationExecutor : ReflectingExecutor<BlogGenerationExecutor>, IMessageHandler<string, string>
 {
     private readonly ILogger<BlogGenerationExecutor> _logger;
     private readonly IConfiguration _configuration;
@@ -22,7 +25,7 @@ public class BlogGenerationExecutor
 
     public BlogGenerationExecutor(
         ILogger<BlogGenerationExecutor> logger,
-        IConfiguration configuration)
+        IConfiguration configuration) : base("BlogGeneration")
     {
         _logger = logger;
         _configuration = configuration;
@@ -62,9 +65,8 @@ public class BlogGenerationExecutor
     /// Generates a blog post from the transcript using Azure OpenAI.
     /// </summary>
     /// <param name="transcript">The video transcript</param>
-    /// <param name="videoFilePath">Original video file path (for saving markdown in same directory)</param>
     /// <returns>Generated blog post in markdown format</returns>
-    public async Task<string> GenerateBlogPostAsync(string transcript, string videoFilePath)
+    public async ValueTask<string> HandleAsync(string transcript, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         if (_openAIClient == null)
         {
@@ -115,9 +117,6 @@ Guidelines:
             _logger.LogDebug("Blog post generated successfully. Length: {Length} characters", blogPost.Length);
             Console.WriteLine($"✅ Blog post generated: {blogPost.Length} characters");
 
-            // Save the markdown file
-            await SaveMarkdownFileAsync(blogPost, videoFilePath);
-
             return blogPost;
         }
         catch (Exception ex)
@@ -125,32 +124,6 @@ Guidelines:
             _logger.LogError(ex, "Error during blog post generation");
             Console.WriteLine($"❌ Blog generation failed: {ex.Message}");
             throw;
-        }
-    }
-
-    /// <summary>
-    /// Saves the generated blog post as a markdown file in the same directory as the video.
-    /// </summary>
-    private async Task SaveMarkdownFileAsync(string blogPost, string videoFilePath)
-    {
-        try
-        {
-            var videoDirectory = Path.GetDirectoryName(videoFilePath) ?? Directory.GetCurrentDirectory();
-            var videoFileName = Path.GetFileNameWithoutExtension(videoFilePath);
-            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-            var markdownFileName = $"{videoFileName}-Generated-{timestamp}.md";
-            var markdownFilePath = Path.Combine(videoDirectory, markdownFileName);
-
-            await File.WriteAllTextAsync(markdownFilePath, blogPost);
-
-            _logger.LogDebug("Markdown file saved: {FilePath}", markdownFilePath);
-            Console.WriteLine($"\n💾 Blog post saved to:");
-            Console.WriteLine($"   {markdownFilePath}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to save markdown file");
-            Console.WriteLine($"⚠️  Warning: Could not save markdown file: {ex.Message}");
         }
     }
 

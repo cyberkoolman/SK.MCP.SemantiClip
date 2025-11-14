@@ -4,6 +4,8 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.Extensions.Logging;
 
 namespace SemanticClip.Agents.Executors;
@@ -12,11 +14,11 @@ namespace SemanticClip.Agents.Executors;
 /// Executor that extracts audio from a video file using FFmpeg.
 /// Ported from the Semantic Kernel TranscribeVideoStep.
 /// </summary>
-public class AudioExtractionExecutor
+public class AudioExtractionExecutor : ReflectingExecutor<AudioExtractionExecutor>, IMessageHandler<string, string>
 {
     private readonly ILogger<AudioExtractionExecutor> _logger;
 
-    public AudioExtractionExecutor(ILogger<AudioExtractionExecutor> logger)
+    public AudioExtractionExecutor(ILogger<AudioExtractionExecutor> logger) : base("AudioExtraction")
     {
         _logger = logger;
     }
@@ -27,7 +29,7 @@ public class AudioExtractionExecutor
     /// </summary>
     /// <param name="videoPath">Full path to the video file</param>
     /// <returns>Path to the extracted audio file</returns>
-    public async Task<string> ExtractAudioAsync(string videoPath)
+    public async ValueTask<string> HandleAsync(string videoPath, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Starting audio extraction from video: {VideoPath}", videoPath);
         Console.WriteLine($"\n🎬 Extracting audio from: {Path.GetFileName(videoPath)}");
